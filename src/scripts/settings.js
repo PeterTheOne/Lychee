@@ -7,94 +7,120 @@ settings = {}
 
 settings.createConfig = function() {
 
-	var dbName,
-		dbUser,
-		dbPassword,
-		dbHost,
-		dbTablePrefix,
-		buttons,
-		params;
+	var msg = '',
+		action;
 
-	buttons = [
-		['Connect', function() {
+	action = function(data) {
 
-			dbHost			= $('.message input.text#dbHost').val();
-			dbUser			= $('.message input.text#dbUser').val();
-			dbPassword		= $('.message input.text#dbPassword').val();
-			dbName			= $('.message input.text#dbName').val();
-			dbTablePrefix	= $('.message input.text#dbTablePrefix').val();
+		var dbName			= data.dbName			|| '',
+			dbUser			= data.dbUser			|| '',
+			dbPassword		= data.dbPassword		|| '',
+			dbHost			= data.dbHost			|| '',
+			dbTablePrefix	= data.dbTablePrefix	|| '',
+			params;
 
-			if (dbHost.length<1) dbHost = 'localhost';
-			if (dbName.length<1) dbName = 'lychee';
+		if (dbHost.length<1) dbHost = 'localhost';
+		if (dbName.length<1) dbName = 'lychee';
 
-			params = 'dbCreateConfig&dbName=' + escape(dbName) + '&dbUser=' + escape(dbUser) + '&dbPassword=' + escape(dbPassword) + '&dbHost=' + escape(dbHost) + '&dbTablePrefix=' + escape(dbTablePrefix);
-			lychee.api(params, function(data) {
+		params = 'dbCreateConfig&dbName=' + escape(dbName) + '&dbUser=' + escape(dbUser) + '&dbPassword=' + escape(dbPassword) + '&dbHost=' + escape(dbHost) + '&dbTablePrefix=' + escape(dbTablePrefix);
+		lychee.api(params, function(data) {
 
-				if (data!==true) {
+			if (data!==true) {
 
-					// Configuration failed
-					setTimeout(function() {
+				// Connection failed
+				if (data.indexOf('Warning: Connection failed!')!==-1) {
 
-						// Connection failed
-						if (data.indexOf('Warning: Connection failed!')!==-1) {
-
-							buttons = [
-								['Retry', function() { setTimeout(settings.createConfig, 400) }],
-								['', function() {}]
-							];
-							modal.show('Connection Failed', 'Unable to connect to host database because access was denied. Double-check your host, username and password and ensure that access from your current location is permitted.', buttons, null, false);
-							return false;
-
+					basicModal.show({
+						body: '<p>Unable to connect to host database because access was denied. Double-check your host, username and password and ensure that access from your current location is permitted.</p>',
+						buttons: {
+							action: {
+								title: 'Retry',
+								fn: settings.createConfig
+							}
 						}
+					});
 
-						// Creation failed
-						if (data.indexOf('Warning: Creation failed!')!==-1) {
-
-							buttons = [
-								['Retry', function() { setTimeout(settings.createConfig, 400) }],
-								['', function() {}]
-							];
-							modal.show('Creation Failed', 'Unable to create the database. Double-check your host, username and password and ensure that the specified user has the rights to modify and add content to the database.', buttons, null, false);
-							return false;
-
-						}
-
-						// Could not create file
-						if (data.indexOf('Warning: Could not create file!')!==-1) {
-
-							buttons = [
-								['Retry', function() { setTimeout(settings.createConfig, 400) }],
-								['', function() {}]
-							];
-							modal.show('Saving Failed', "Unable to save this configuration. Permission denied in <b>'data/'</b>. Please set the read, write and execute rights for others in <b>'data/'</b> and <b>'uploads/'</b>. Take a look the readme for more information.", buttons, null, false);
-							return false;
-
-						}
-
-						// Something went wrong
-						buttons = [
-							['Retry', function() { setTimeout(settings.createConfig, 400) }],
-							['', function() {}]
-						];
-						modal.show('Configuration Failed', 'Something unexpected happened. Please try again and check your installation and server. Take a look the readme for more information.', buttons, null, false);
-						return false;
-
-					}, 400);
-
-				} else {
-
-					// Configuration successful
-					window.location.reload();
+					return false;
 
 				}
 
-			});
+				// Creation failed
+				if (data.indexOf('Warning: Creation failed!')!==-1) {
 
-		}],
-		['', function() {}]
-	];
+					basicModal.show({
+						body: '<p>Unable to create the database. Double-check your host, username and password and ensure that the specified user has the rights to modify and add content to the database.</p>',
+						buttons: {
+							action: {
+								title: 'Retry',
+								fn: settings.createConfig
+							}
+						}
+					});
 
-	modal.show('Configuration', "Enter your database connection details below: <input id='dbHost' class='text less' type='text' placeholder='Database Host (optional)' value=''><input id='dbUser' class='text less' type='text' placeholder='Database Username' value=''><input id='dbPassword' class='text more' type='password' placeholder='Database Password' value=''><br>Lychee will create its own database. If required, you can enter the name of an existing database instead:<input id='dbName' class='text less' type='text' placeholder='Database Name (optional)' value=''><input id='dbTablePrefix' class='text more' type='text' placeholder='Table prefix (optional)' value=''>", buttons, -235, false);
+					return false;
+
+				}
+
+				// Could not create file
+				if (data.indexOf('Warning: Could not create file!')!==-1) {
+
+					basicModal.show({
+						body: "<p>Unable to save this configuration. Permission denied in <b>'data/'</b>. Please set the read, write and execute rights for others in <b>'data/'</b> and <b>'uploads/'</b>. Take a look at the readme for more information.</p>",
+						buttons: {
+							action: {
+								title: 'Retry',
+								fn: settings.createConfig
+							}
+						}
+					});
+
+					return false;
+
+				}
+
+				// Something went wrong
+				basicModal.show({
+					body: '<p>Something unexpected happened. Please try again and check your installation and server. Take a look at the readme for more information.</p>',
+					buttons: {
+						action: {
+							title: 'Retry',
+							fn: settings.createConfig
+						}
+					}
+				});
+
+				return false;
+
+			} else {
+
+				// Configuration successful
+				window.location.reload();
+
+			}
+
+		});
+
+	}
+
+	msg	+= "<p>Enter your database connection details below:";
+	msg += "<input data-name='dbHost' class='text' type='text' placeholder='Database Host (optional)' value=''>";
+	msg += "<input data-name='dbUser' class='text' type='text' placeholder='Database Username' value=''>";
+	msg += "<input data-name='dbPassword' class='text' type='password' placeholder='Database Password' value=''>";
+	msg += "</p>";
+	msg += "<p>Lychee will create its own database. If required, you can enter the name of an existing database instead:";
+	msg += "<input data-name='dbName' class='text' type='text' placeholder='Database Name (optional)' value=''>";
+	msg += "<input data-name='dbTablePrefix' class='text' type='text' placeholder='Table prefix (optional)' value=''>";
+	msg += "</p>";
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Connect',
+				fn: action
+			}
+		}
+	});
 
 }
 
@@ -158,46 +184,63 @@ settings.createLogin = function() {
 
 settings.setLogin = function() {
 
-	var old_password,
-		username,
-		password,
-		params,
-		buttons;
+	var msg = '',
+		action;
 
-	buttons = [
-		['Change Login', function() {
+	action = function(data) {
 
-			old_password	= $('.message input.text#old_password').val();
-			username		= $('.message input.text#username').val();
-			password		= $('.message input.text#password').val();
+		var oldPassword		= data.oldPassword	|| '',
+			username		= data.username		|| '',
+			password		= data.password		|| '',
+			params;
 
-			if (old_password.length<1) {
-				loadingBar.show('error', 'Your old password was entered incorrectly. Please try again!');
-				return false;
+		if (oldPassword.length<1) {
+			basicModal.error('oldPassword');
+			return false;
+		}
+
+		if (username.length<1) {
+			basicModal.error('username');
+			return false;
+		}
+
+		if (password.length<1) {
+			basicModal.error('password');
+			return false;
+		}
+
+		basicModal.close();
+
+		params = 'setLogin&oldPassword=' + md5(oldPassword) + '&username=' + escape(username) + '&password=' + md5(password);
+		lychee.api(params, function(data) {
+
+			if (data!==true) lychee.error(null, params, data);
+
+		});
+
+	}
+
+	msg += "<p>Enter your current password:";
+	msg += "<input data-name='oldPassword' class='text' type='password' placeholder='Current Password' value=''>";
+	msg += "</p>"
+	msg += "<p>Your username and password will be changed to the following:";
+	msg += "<input data-name='username' class='text' type='text' placeholder='New Username' value=''>";
+	msg += "<input data-name='password' class='text' type='password' placeholder='New Password' value=''>";
+	msg += "</p>";
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Change Login',
+				fn: action
+			},
+			cancel: {
+				title: 'Cancel',
+				fn: basicModal.close
 			}
-
-			if (username.length<1) {
-				loadingBar.show('error', 'Your new username was entered incorrectly. Please try again!');
-				return false;
-			}
-
-			if (password.length<1) {
-				loadingBar.show('error', 'Your new password was entered incorrectly. Please try again!');
-				return false;
-			}
-
-			params = 'setLogin&oldPassword=' + md5(old_password) + '&username=' + escape(username) + '&password=' + md5(password);
-			lychee.api(params, function(data) {
-
-				if (data!==true) lychee.error(null, params, data);
-
-			});
-
-		}],
-		['Cancel', function() {}]
-	];
-
-	modal.show('Change Login', "Enter your current password: <input id='old_password' class='text more' type='password' placeholder='Current Password' value=''><br>Your username and password will be changed to the following: <input id='username' class='text less' type='text' placeholder='New Username' value=''><input id='password' class='text' type='password' placeholder='New Password' value=''>", buttons, -171);
+		}
+	});
 
 }
 

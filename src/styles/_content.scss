@@ -136,7 +136,7 @@
 		.iconic {
 			fill: #fff;
 			width: 21px;
-			filter: drop-shadow( 0 -1px 0 black(.1) );
+			filter: drop-shadow($shadowLight);
 		}
 	}
 
@@ -148,7 +148,7 @@
 		width: 100%;
 		opacity: 0;
 		border-top: 1px solid white(.02);
-		box-shadow: 0 -1px 0 0 black(.2);
+		box-shadow: $shadow;
 
 		&:first-child {
 			margin-top: 10px;
@@ -162,30 +162,28 @@
 			color: white(.6);
 			font-size: 14px;
 			font-weight: bold;
-			text-shadow: 0 -1px 0 black(.1);
+			text-shadow: $shadow;
 		}
 	}
 
-	/* No Content ------------------------------------------------*/
-	.no_content {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		height: 160px;
-		width: 180px;
-		margin-top: -60px;
-		margin-left: -90px;
-		padding-top: 20px;
-		color: rgba(15, 15, 15, 1);
-		text-shadow: 0 1px 0 white(.01);
-		text-align: center;
+}
 
-		.icon { font-size: 80px; }
+/* No Content ------------------------------------------------*/
+.no_content {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	padding-top: 20px;
+	color: rgba(10, 10, 10, 1);
+	color: black(.9);
+	text-shadow: 0 1px 0 white(.02);
+	text-align: center;
+	transform: translateX(-50%) translateY(-50%);
 
-		p {
-			font-size: 18px;
-			font-weight: bold;
-		}
+	.icon { font-size: 80px; }
+
+	p {
+		font-size: 18px;
+		font-weight: bold;
 	}
-
 }
