@@ -1,5 +1,5 @@
 /**
- * @copyright   2014 by Tobias Reich
+ * @copyright   2015 by Tobias Reich
  */
 
 #infobox_overlay {
@@ -146,7 +146,7 @@
 	#tags .empty .edit { margin-top: 0; }
 
 	#tags .tag {
-		float: left;
+		display: inline-block;
 		padding: 6px 10px;
 		margin: 0 6px 8px 0;
 		background-color: black(.5);
@@ -159,20 +159,24 @@
 
 	#tags .tag span {
 		float: right;
-		width: 0;
 		padding: 0;
 		margin: 0 0 -2px 0;
-		color: red;
-		font-size: 11px;
+		width: 0;
 		cursor: pointer;
 		overflow: hidden;
 		transform: scale(0);
 		transition: width .3s, margin .3s, transform .3s;
+
+		.iconic {
+			fill: $colorRed;
+			width: 8px;
+			filter: drop-shadow($shadowLight);
+		}
 	}
 
 	#tags .tag:hover span {
-		width: 10px;
-		margin: 0 0 -2px 6px;
+		width: 9px;
+		margin: 0 0 -2px 5px;
 		transform: scale(1);
 	}
 

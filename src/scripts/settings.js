@@ -1,6 +1,6 @@
 /**
  * @description	Lets you change settings.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 settings = {}
@@ -19,11 +19,23 @@ settings.createConfig = function() {
 			dbTablePrefix	= data.dbTablePrefix	|| '',
 			params;
 
+		if (dbUser.length<1) {
+			basicModal.error('dbUser');
+			return false;
+		}
+
 		if (dbHost.length<1) dbHost = 'localhost';
 		if (dbName.length<1) dbName = 'lychee';
 
-		params = 'dbCreateConfig&dbName=' + escape(dbName) + '&dbUser=' + escape(dbUser) + '&dbPassword=' + escape(dbPassword) + '&dbHost=' + escape(dbHost) + '&dbTablePrefix=' + escape(dbTablePrefix);
-		lychee.api(params, function(data) {
+		params = {
+			dbName,
+			dbUser,
+			dbPassword,
+			dbHost,
+			dbTablePrefix
+		}
+
+		api.post('Database::createConfig', params, function(data) {
 
 			if (data!==true) {
 
@@ -102,15 +114,19 @@ settings.createConfig = function() {
 
 	}
 
-	msg	+= "<p>Enter your database connection details below:";
-	msg += "<input data-name='dbHost' class='text' type='text' placeholder='Database Host (optional)' value=''>";
-	msg += "<input data-name='dbUser' class='text' type='text' placeholder='Database Username' value=''>";
-	msg += "<input data-name='dbPassword' class='text' type='password' placeholder='Database Password' value=''>";
-	msg += "</p>";
-	msg += "<p>Lychee will create its own database. If required, you can enter the name of an existing database instead:";
-	msg += "<input data-name='dbName' class='text' type='text' placeholder='Database Name (optional)' value=''>";
-	msg += "<input data-name='dbTablePrefix' class='text' type='text' placeholder='Table prefix (optional)' value=''>";
-	msg += "</p>";
+	msg =	`
+			<p>
+				Enter your database connection details below:
+				<input data-name='dbHost' class='text' type='text' placeholder='Database Host (optional)' value=''>
+				<input data-name='dbUser' class='text' type='text' placeholder='Database Username' value=''>
+				<input data-name='dbPassword' class='text' type='password' placeholder='Database Password' value=''>
+			</p>
+			<p>
+				Lychee will create its own database. If required, you can enter the name of an existing database instead:
+				<input data-name='dbName' class='text' type='text' placeholder='Database Name (optional)' value=''>
+				<input data-name='dbTablePrefix' class='text' type='text' placeholder='Table prefix (optional)' value=''>
+			</p>
+			`
 
 	basicModal.show({
 		body: msg,
@@ -126,59 +142,69 @@ settings.createConfig = function() {
 
 settings.createLogin = function() {
 
-	var username,
-		password,
-		params,
-		buttons;
+	var action,
+		msg = '';
 
-	buttons = [
-		['Create Login', function() {
+	action = function(data) {
 
-			username = $('.message input.text#username').val();
-			password = $('.message input.text#password').val();
+		var params,
+			username = data.username,
+			password = data.password;
 
-			if (username.length<1||password.length<1) {
+		if (username.length<1) {
+			basicModal.error('username');
+			return false;
+		}
 
-				setTimeout(function() {
+		if (password.length<1) {
+			basicModal.error('password');
+			return false;
+		}
 
-					buttons = [
-						['Retry', function() { setTimeout(settings.createLogin, 400) }],
-						['', function() {}]
-					];
-					modal.show('Wrong Input', 'The username or password you entered is not long enough. Please try again with another username and password!', buttons, null, false);
-					return false;
+		basicModal.close();
 
-				}, 400);
+		params = {
+			username,
+			password: md5(password)
+		}
 
-			} else {
+		api.post('Settings::setLogin', params, function(data) {
 
-				params = 'setLogin&username=' + escape(username) + '&password=' + md5(password);
-				lychee.api(params, function(data) {
+			if (data!==true) {
 
-					if (data!==true) {
-
-						setTimeout(function() {
-
-							buttons = [
-								['Retry', function() { setTimeout(settings.createLogin, 400) }],
-								['', function() {}]
-							];
-							modal.show('Creation Failed', 'Unable to save login. Please try again with another username and password!', buttons, null, false);
-							return false;
-
-						}, 400);
-
+				basicModal.show({
+					body: '<p>Unable to save login. Please try again with another username and password!</p>',
+					buttons: {
+						action: {
+							title: 'Retry',
+							fn: settings.createLogin
+						}
 					}
-
 				});
 
 			}
 
-		}],
-		['', function() {}]
-	];
+		});
 
-	modal.show('Create Login', "Enter a username and password for your installation: <input id='username' class='text less' type='text' placeholder='New Username' value=''><input id='password' class='text' type='password' placeholder='New Password' value=''>", buttons, -122, false);
+	}
+
+	msg =	`
+			<p>
+				Enter a username and password for your installation:
+				<input data-name='username' class='text' type='text' placeholder='New Username' value=''>
+				<input data-name='password' class='text' type='password' placeholder='New Password' value=''>
+			</p>
+			`
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Create Login',
+				fn: action
+			}
+		}
+	});
 
 }
 
@@ -211,8 +237,13 @@ settings.setLogin = function() {
 
 		basicModal.close();
 
-		params = 'setLogin&oldPassword=' + md5(oldPassword) + '&username=' + escape(username) + '&password=' + md5(password);
-		lychee.api(params, function(data) {
+		params = {
+			oldPassword: md5(oldPassword),
+			username,
+			password: md5(password)
+		}
+
+		api.post('Settings::setLogin', params, function(data) {
 
 			if (data!==true) lychee.error(null, params, data);
 
@@ -220,13 +251,17 @@ settings.setLogin = function() {
 
 	}
 
-	msg += "<p>Enter your current password:";
-	msg += "<input data-name='oldPassword' class='text' type='password' placeholder='Current Password' value=''>";
-	msg += "</p>"
-	msg += "<p>Your username and password will be changed to the following:";
-	msg += "<input data-name='username' class='text' type='text' placeholder='New Username' value=''>";
-	msg += "<input data-name='password' class='text' type='password' placeholder='New Password' value=''>";
-	msg += "</p>";
+	msg =	`
+			<p>
+				Enter your current password:
+				<input data-name='oldPassword' class='text' type='password' placeholder='Current Password' value=''>
+			</p>
+			<p>
+				Your username and password will be changed to the following:
+				<input data-name='username' class='text' type='text' placeholder='New Username' value=''>
+				<input data-name='password' class='text' type='password' placeholder='New Password' value=''>
+			</p>
+			`
 
 	basicModal.show({
 		body: msg,
@@ -246,57 +281,77 @@ settings.setLogin = function() {
 
 settings.setSorting = function() {
 
-	var buttons,
-		sorting,
-		params;
+	var sorting = [],
+		action,
+		msg = '';
 
-	buttons = [
-		['Change Sorting', function() {
+	action = function() {
 
-			sorting[0] = $('select#settings_type').val();
-			sorting[1] = $('select#settings_order').val();
+		var params;
 
-			albums.refresh();
+		sorting[0] = $('.basicModal select#settings_type').val();
+		sorting[1] = $('.basicModal select#settings_order').val();
 
-			params = 'setSorting&type=' + sorting[0] + '&order=' + sorting[1];
-			lychee.api(params, function(data) {
+		basicModal.close();
+		albums.refresh();
 
-				if (data===true) {
-					lychee.sorting = 'ORDER BY ' + sorting[0] + ' ' + sorting[1];
-					lychee.load();
-				} else lychee.error(null, params, data);
+		params = {
+			type: sorting[0],
+			order: sorting[1]
+		}
 
-			});
+		api.post('Settings::setSorting', params, function(data) {
 
-		}],
-		['Cancel', function() {}]
-	];
+			if (data===true) {
+				lychee.sorting = 'ORDER BY ' + sorting[0] + ' ' + sorting[1];
+				lychee.load();
+			} else lychee.error(null, params, data);
 
-	modal.show('Change Sorting',
-		"Sort photos by \
-			<select id='settings_type'> \
-				<option value='id'>Upload Time</option> \
-				<option value='takestamp'>Take Date</option> \
-				<option value='title'>Title</option> \
-				<option value='description'>Description</option> \
-				<option value='public'>Public</option> \
-				<option value='star'>Star</option> \
-				<option value='type'>Photo Format</option> \
-			</select> \
-			in an \
-			<select id='settings_order'> \
-				<option value='ASC'>Ascending</option> \
-				<option value='DESC'>Descending</option> \
-			</select> \
-			order.\
-		", buttons);
+		});
+
+	}
+
+	msg =	`
+			<p>
+				Sort photos by
+				<select id='settings_type'>
+					<option value='id'>Upload Time</option>
+					<option value='takestamp'>Take Date</option>
+					<option value='title'>Title</option>
+					<option value='description'>Description</option>
+					<option value='public'>Public</option>
+					<option value='star'>Star</option>
+					<option value='type'>Photo Format</option>
+				</select>
+				in an
+				<select id='settings_order'>
+					<option value='ASC'>Ascending</option>
+					<option value='DESC'>Descending</option>
+				</select>
+				order.
+			</p>
+			`
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Change Sorting',
+				fn: action
+			},
+			cancel: {
+				title: 'Cancel',
+				fn: basicModal.close
+			}
+		}
+	});
 
 	if (lychee.sorting!=='') {
 
 		sorting = lychee.sorting.replace('ORDER BY ', '').split(' ');
 
-		$('select#settings_type').val(sorting[0]);
-		$('select#settings_order').val(sorting[1]);
+		$('.basicModal select#settings_type').val(sorting[0]);
+		$('.basicModal select#settings_order').val(sorting[1]);
 
 	}
 
@@ -304,29 +359,50 @@ settings.setSorting = function() {
 
 settings.setDropboxKey = function(callback) {
 
-	var buttons,
-		params,
-		key;
+	var action,
+		msg = "";
 
-	buttons = [
-		['Set Key', function() {
+	action = function(data) {
 
-			key = $('.message input.text#key').val();
+		var key = data.key;
 
-			params = 'setDropboxKey&key=' + key;
-			lychee.api(params, function(data) {
+		if (data.key.length<1) {
+			basicModal.error('key');
+			return false;
+		}
 
-				if (data===true) {
-					lychee.dropboxKey = key;
-					if (callback) lychee.loadDropbox(callback);
-				} else lychee.error(null, params, data);
+		basicModal.close();
 
-			});
+		api.post('Settings::setDropboxKey', { key }, function(data) {
 
-		}],
-		['Cancel', function() {}]
-	];
+			if (data===true) {
+				lychee.dropboxKey = key;
+				if (callback) lychee.loadDropbox(callback);
+			} else lychee.error(null, params, data);
 
-	modal.show('Set Dropbox Key', "In order to import photos from your Dropbox, you need a valid drop-ins app key from <a href='https://www.dropbox.com/developers/apps/create'>their website</a>. Generate yourself a personal key and enter it below: <input id='key' class='text' type='text' placeholder='Dropbox API Key' value='" + lychee.dropboxKey + "'>", buttons);
+		});
+
+	}
+
+	msg =	`
+			<p>
+				In order to import photos from your Dropbox, you need a valid drop-ins app key from <a href='https://www.dropbox.com/developers/apps/create'>their website</a>. Generate yourself a personal key and enter it below:
+				<input class='text' data-name='key' type='text' placeholder='Dropbox API Key' value='${ lychee.dropboxKey }'>
+			</p>
+			`
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Set Dropbox Key',
+				fn: action
+			},
+			cancel: {
+				title: 'Cancel',
+				fn: basicModal.close
+			}
+		}
+	});
 
 }

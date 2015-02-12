@@ -1,6 +1,6 @@
 /**
  * @description	Takes care of every action albums can handle and execute.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 albums = {
@@ -22,7 +22,7 @@ albums.load = function() {
 
 	if (albums.json===null) {
 
-		lychee.api('getAlbums', function(data) {
+		api.post('Album::getAll', {}, function(data) {
 
 			/* Smart Albums */
 			data.unsortedAlbum = {

@@ -1,6 +1,6 @@
 /**
  * @description	This module provides the basic functions of Lychee.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 lychee = {
@@ -9,7 +9,6 @@ lychee = {
 	version:		'3.0.0',
 	version_code:	'030000',
 
-	api_path:		'php/api.php',
 	update_path:	'http://lychee.electerious.com/version/index.php',
 	updateURL:		'https://github.com/electerious/Lychee',
 	website:		'http://lychee.electerious.com',
@@ -37,8 +36,11 @@ lychee.init = function() {
 
 	var params;
 
-	params = 'init&version=' + lychee.version_code;
-	lychee.api(params, function(data) {
+	params = {
+		version: lychee.version_code
+	}
+
+	api.post('Session::init', params, function(data) {
 
 		if (data.loggedIn!==true) {
 			lychee.setMode('public');
@@ -71,60 +73,18 @@ lychee.init = function() {
 
 }
 
-lychee.api = function(params, callback) {
+lychee.login = function(data) {
 
-	loadingBar.show();
-
-	$.ajax({
-		type: 'POST',
-		url: lychee.api_path,
-		data: 'function=' + params,
-		dataType: 'text',
-		success: function(data) {
-
-			setTimeout(function() { loadingBar.hide() }, 100);
-
-			// Catch errors
-			if (typeof data==='string'&&
-				data.substring(0, 7)==='Error: ') {
-					lychee.error(data.substring(7, data.length), params, data);
-					upload.close(true);
-					return false;
-			}
-
-			// Convert 1 to true and an empty string to false
-			if (data==='1')		data = true;
-			else if (data==='')	data = false;
-
-			// Convert to JSON if string start with '{' and ends with '}'
-			if (typeof data==='string'&&
-				data.substring(0, 1)==='{'&&
-				data.substring(data.length-1, data.length)==='}') data = $.parseJSON(data);
-
-			// Output response when debug mode is enabled
-			if (lychee.debugMode) console.log(data);
-
-			callback(data);
-
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
-
-			lychee.error('Server error or API not found.', params, errorThrown);
-			upload.close(true);
-
-		}
-	});
-
-}
-
-lychee.login = function() {
-
-	var user		= $('input#username').val(),
-		password	= md5($('input#password').val()),
+	var user		= data.username,
+		password	= md5(data.password),
 		params;
 
-	params = 'login&user=' + user + '&password=' + password;
-	lychee.api(params, function(data) {
+	params = {
+		user,
+		password
+	}
+
+	api.post('Session::login', params, function(data) {
 
 		if (data===true) {
 
@@ -137,8 +97,7 @@ lychee.login = function() {
 		} else {
 
 			// Show error and reactive button
-			$('#password').val('').addClass('error').focus();
-			$('.message .button.active').removeClass('pressed');
+			basicModal.error('password');
 
 		}
 
@@ -148,16 +107,36 @@ lychee.login = function() {
 
 lychee.loginDialog = function() {
 
-	var local_username;
+	var localUsername,
+		msg = '';
 
-	$('body').append(build.signInModal());
-	$('#username').focus();
+	msg =	`
+			<p class='signIn'>
+				<input class='text' data-name='username' type='text' value='' placeholder='username' autocapitalize='off' autocorrect='off'>
+				<input class='text' data-name='password' type='password' value='' placeholder='password'>
+			</p>
+			<p class='version'>Lychee ${ lychee.version }<span> &#8211; <a target='_blank' href='${ lychee.updateURL }'>Update available!</a><span></p>
+			`
+
+	basicModal.show({
+		body: msg,
+		buttons: {
+			action: {
+				title: 'Sign In',
+				fn: lychee.login
+			},
+			cancel: {
+				title: 'Cancel',
+				fn: basicModal.close
+			}
+		}
+	});
 
 	if (localStorage) {
-		local_username = localStorage.getItem('lychee_username');
-		if (local_username!==null) {
-			if (local_username.length>0) $('#username').val(local_username);
-			$('#password').focus();
+		localUsername = localStorage.getItem('lychee_username');
+		if (localUsername!==null) {
+			if (localUsername.length>0) $('.basicModal input[data-name="username"]').val(localUsername);
+			$('.basicModal input[data-name="password"]').focus();
 		}
 	}
 
@@ -167,7 +146,7 @@ lychee.loginDialog = function() {
 
 lychee.logout = function() {
 
-	lychee.api('logout', function() {
+	api.post('Session::logout', {}, function() {
 		window.location.reload();
 	});
 
@@ -244,21 +223,17 @@ lychee.getUpdate = function() {
 
 	$.ajax({
 		url: lychee.update_path,
-		success: function(data) { if (parseInt(data)>parseInt(lychee.version_code)) $('#version span').show(); }
+		success: function(data) { if (parseInt(data)>parseInt(lychee.version_code)) $('.version span').show(); }
 	});
 
 }
 
 lychee.setTitle = function(title, editable) {
 
-	var $title = header.dom('#title');
-
 	document.title = lychee.title + ' - ' + title;
 
-	if (editable)	$title.addClass('editable');
-	else			$title.removeClass('editable');
-
-	$title.html(title + build.iconic('caret-bottom'));
+	header.setEditable(editable);
+	header.setTitle(title);
 
 }
 
@@ -268,7 +243,6 @@ lychee.setMode = function(mode) {
 	$('#button_trash, #button_move, #button_share, #button_star').remove();
 
 	$(document)
-		.on('mouseenter',	'#title.editable', function() { $(this).removeClass('editable') })
 		.off('click',		'#title.editable')
 		.off('touchend',	'#title.editable')
 		.off('contextmenu',	'.photo')

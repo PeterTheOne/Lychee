@@ -1,6 +1,6 @@
 /**
  * @description	This module takes care of the header.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 header = {
@@ -58,6 +58,15 @@ header.hide = function(e, delay) {
 
 }
 
+header.setTitle = function(title) {
+
+	var $title	= header.dom('#title'),
+		title	= title || 'Untitled';
+
+	$title.html(title + build.iconic('caret-bottom'));
+
+}
+
 header.setMode = function(mode) {
 
 	var albumID = album.getID();
@@ -104,5 +113,17 @@ header.setMode = function(mode) {
 			break;
 
 	}
+
+}
+
+header.setEditable = function(editable) {
+
+	var $title = header.dom('#title');
+
+	// Hide editable icon when not logged in
+	if (lychee.publicMode===true) editable = false;
+
+	if (editable)	$title.addClass('editable');
+	else			$title.removeClass('editable');
 
 }

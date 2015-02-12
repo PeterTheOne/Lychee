@@ -1,6 +1,6 @@
 /**
  * @description	Responsible to reflect data changes to the UI.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 view = {}
@@ -71,7 +71,7 @@ view.albums = {
 
 			if (smartData===''&&albumsData==='') {
 				lychee.content.html('');
-				$('body').append(build.no_content('share'));
+				$('body').append(build.no_content('eye'));
 			} else {
 				lychee.content.html(smartData + albumsData);
 			}
@@ -87,11 +87,8 @@ view.albums = {
 
 		title: function(albumID) {
 
-			var prefix		= '',
-				longTitle	= '',
+			var longTitle	= '',
 				title		= albums.json.content[albumID].title;
-
-			if (albums.json.content[albumID].password) prefix = "<span class='icon-lock'></span> ";
 
 			if (title!==null&&title.length>18) {
 				longTitle	= title;
@@ -99,7 +96,7 @@ view.albums = {
 			}
 
 			$('.album[data-id="' + albumID + '"] .overlay h1')
-				.html(prefix + title)
+				.html(title)
 				.attr('title', longTitle);
 
 		},
@@ -205,15 +202,15 @@ view.album = {
 
 		star: function(photoID) {
 
-			$('.photo[data-id="' + photoID + '"] .icon-star').remove();
-			if (album.json.content[photoID].star==1) $('.photo[data-id="' + photoID + '"]').append("<a class='badge red icon-star'></a>");
+			$('.photo[data-id="' + photoID + '"] .iconic-star').remove();
+			if (album.json.content[photoID].star==1) $('.photo[data-id="' + photoID + '"]').append("<a class='badge iconic-star'>" + build.iconic('star') + "</a>");
 
 		},
 
 		public: function(photoID) {
 
-			$('.photo[data-id="' + photoID + '"] .icon-share').remove();
-			if (album.json.content[photoID].public==1) $('.photo[data-id="' + photoID + '"]').append("<a class='badge red icon-share'></a>");
+			$('.photo[data-id="' + photoID + '"] .iconic-share').remove();
+			if (album.json.content[photoID].public==1) $('.photo[data-id="' + photoID + '"]').append("<a class='badge iconic-share'>" + build.iconic('eye') + "</a>");
 
 		},
 
@@ -251,13 +248,21 @@ view.album = {
 	public: function() {
 
 		if (album.json.public==1) {
-			$('#button_share_album a').addClass('active');
-			$('#button_share_album').attr('title', 'Share Album');
-			$('.photo .icon-share').remove();
+
+			$('#button_share_album')
+				.addClass('active')
+				.attr('title', 'Share Album');
+
+			$('.photo .iconic-share').remove();
+
 			if (album.json.init) $('#infobox .attr_visibility').html('Public');
+
 		} else {
-			$('#button_share_album a').removeClass('active');
-			$('#button_share_album').attr('title', 'Make Public');
+
+			$('#button_share_album')
+				.removeClass('active')
+				.attr('title', 'Make Public');
+
 			if (album.json.init) $('#infobox .attr_visibility').html('Private');
 		}
 

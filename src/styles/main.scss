@@ -1,5 +1,5 @@
 /**
- * @copyright   2014 by Tobias Reich
+ * @copyright   2015 by Tobias Reich
  */
 
 @import 'etc';
@@ -26,15 +26,7 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 	font-smoothing: antialiased;
 
-	&.view {
-		background-color: #0f0f0f;
-	}
-}
-
-.center {
-	position: absolute;
-	left: 50%;
-	top: 50%;
+	&.view { background-color: #0f0f0f; }
 }
 
 input {
@@ -48,15 +40,15 @@ input {
 	height: 100%;
 }
 
+#upload { display: none; }
+
 @import 'animations';
 @import 'content';
 @import 'contextmenu';
-@import 'font';
 @import 'header';
 @import 'imageview';
 @import 'infobox';
 @import 'loading';
 @import 'message';
 @import 'multiselect';
-@import 'upload';
 @import 'mediaquery';

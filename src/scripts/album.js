@@ -1,6 +1,6 @@
 /**
  * @description	Takes care of every action an album can handle and execute.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 album = {
@@ -42,8 +42,12 @@ album.load = function(albumID, refresh) {
 
 		startTime = new Date().getTime();
 
-		params = 'getAlbum&albumID=' + albumID + '&password=' + password.value;
-		lychee.api(params, function(data) {
+		params = {
+			albumID,
+			password: password.value
+		}
+
+		api.post('Album::get', params, function(data) {
 
 			if (data==='Warning: Album private!') {
 				if (document.location.hash.replace('#', '').split('/')[1]!=undefined) {
@@ -103,15 +107,20 @@ album.add = function() {
 
 	action = function(data) {
 
-		var params,
-			isNumber = function(n) { return !isNaN(parseFloat(n)) && isFinite(n) };
+		var isNumber,
+			title = data.title;
 
 		basicModal.close();
 
-		if (data.title.length===0) data.title = 'Untitled';
+		isNumber = function(n) {
 
-		params = 'addAlbum&title=' + escape(encodeURI(data.title));
-		lychee.api(params, function(data) {
+			return !isNaN(parseFloat(n)) && isFinite(n)
+
+		}
+
+		if (title.length===0) title = 'Untitled';
+
+		api.post('Album::add', { title }, function(data) {
 
 			// Avoid first album to be true
 			if (data===true) data = 1;
@@ -159,8 +168,11 @@ album.delete = function(albumIDs) {
 
 		basicModal.close();
 
-		params = 'deleteAlbum&albumIDs=' + albumIDs;
-		lychee.api(params, function(data) {
+		params = {
+			albumIDs: albumIDs.join()
+		}
+
+		api.post('Album::delete', params, function(data) {
 
 			if (visible.albums()) {
 
@@ -280,8 +292,12 @@ album.setTitle = function(albumIDs) {
 
 		}
 
-		params = 'setAlbumTitle&albumIDs=' + albumIDs + '&title=' + escape(encodeURI(newTitle));
-		lychee.api(params, function(data) {
+		params = {
+			albumIDs: albumIDs.join(),
+			title: newTitle
+		}
+
+		api.post('Album::setTitle', params, function(data) {
 
 			if (data!==true) lychee.error(null, params, data);
 
@@ -310,7 +326,7 @@ album.setTitle = function(albumIDs) {
 
 }
 
-album.setDescription = function(photoID) {
+album.setDescription = function(albumID) {
 
 	var oldDescription = album.json.description.replace("'", '&apos;'),
 		action;
@@ -330,8 +346,12 @@ album.setDescription = function(photoID) {
 			view.album.description();
 		}
 
-		params = 'setAlbumDescription&albumID=' + photoID + '&description=' + escape(encodeURI(description));
-		lychee.api(params, function(data) {
+		params = {
+			albumID,
+			description
+		}
+
+		api.post('Album::setDescription', params, function(data) {
 
 			if (data!==true) lychee.error(null, params, data);
 
@@ -376,11 +396,36 @@ album.setPublic = function(albumID, e) {
 
 		};
 
-		msg = "<p class='less'>This album will be shared with the following properties:</p><form>";
-		msg += "<div class='choice'><label><input type='checkbox' name='listed' checked><span class='checkbox'>" + build.iconic('check') + "</span><span class='label'>Visible</span></label><p>Listed to visitors of your Lychee.</p></div>";
-		msg += "<div class='choice'><label><input type='checkbox' name='downloadable'><span class='checkbox'>" + build.iconic('check') + "</span><span class='label'>Downloadable</span></label><p>Visitors of your Lychee can download this album.</p></div>";
-		msg += "<div class='choice'><label><input type='checkbox' name='password'><span class='checkbox'>" + build.iconic('check') + "</span><span class='label'>Password protected</span></label><p>Only accessible with a valid password.</p><input class='text' data-name='password' type='password' placeholder='password' value=''></div>";
-		msg += "</form>"
+		msg =	`
+				<p class='less'>This album will be shared with the following properties:</p>
+				<form>
+					<div class='choice'>
+						<label>
+							<input type='checkbox' name='listed' checked>
+							<span class='checkbox'>${ build.iconic('check') }</span>
+							<span class='label'>Visible</span>
+						</label>
+						<p>Listed to visitors of your Lychee.</p>
+					</div>
+					<div class='choice'>
+						<label>
+							<input type='checkbox' name='downloadable'>
+							<span class='checkbox'>${ build.iconic('check') }</span>
+							<span class='label'>Downloadable</span>
+						</label>
+						<p>Visitors of your Lychee can download this album.</p>
+					</div>
+					<div class='choice'>
+						<label>
+							<input type='checkbox' name='password'>
+							<span class='checkbox'>${ build.iconic('check') }</span>
+							<span class='label'>Password protected</span>
+						</label>
+						<p>Only accessible with a valid password.</p>
+						<input class='text' data-name='password' type='password' placeholder='password' value=''>
+					</div>
+				</form>
+				`
 
 		basicModal.show({
 			body: msg,
@@ -398,7 +443,7 @@ album.setPublic = function(albumID, e) {
 
 		$('.basicModal .choice input[name="password"]').on('change', function() {
 
-			if ($(this).prop('checked')===true)	$('.basicModal .choice input[data-name="password"]').show();
+			if ($(this).prop('checked')===true)	$('.basicModal .choice input[data-name="password"]').show().focus();
 			else								$('.basicModal .choice input[data-name="password"]').hide();
 
 		});
@@ -410,7 +455,7 @@ album.setPublic = function(albumID, e) {
 	if (basicModal.visible()) {
 
 		if ($('.basicModal .choice input[name="password"]:checked').length===1) {
-			password			= md5($('.basicModal .choice input[name="password"]').val());
+			password			= md5($('.basicModal .choice input[data-name="password"]').val());
 			album.json.password	= 1;
 		} else {
 			password			= '';
@@ -421,8 +466,6 @@ album.setPublic = function(albumID, e) {
 		if ($('.basicModal .choice input[name="downloadable"]:checked').length===1)	downloadable = true;
 
 	}
-
-	params = 'setAlbumPublic&albumID=' + albumID + '&password=' + password + '&visible=' + listed + '&downloadable=' + downloadable;
 
 	if (visible.album()) {
 
@@ -436,7 +479,14 @@ album.setPublic = function(albumID, e) {
 
 	}
 
-	lychee.api(params, function(data) {
+	params = {
+		albumID,
+		password,
+		visible: listed,
+		downloadable
+	}
+
+	api.post('Album::setPublic', params, function(data) {
 
 		if (data!==true) lychee.error(null, params, data);
 
@@ -471,7 +521,7 @@ album.share = function(service) {
 album.getArchive = function(albumID) {
 
 	var link,
-		url = 'php/api.php?function=getAlbumArchive&albumID=' + albumID;
+		url = api.path + '?function=Album::getArchive&albumID=' + albumID;
 
 	if (location.href.indexOf('index.html')>0)	link = location.href.replace(location.hash, '').replace('index.html', url);
 	else										link = location.href.replace(location.hash, '') + url;

@@ -1,12 +1,12 @@
 /**
  * @description	This module is used for bindings.
- * @copyright	2014 by Tobias Reich
+ * @copyright	2015 by Tobias Reich
  */
 
 $(document).ready(function() {
 
 	/* Event Name */
-	var eventName = (mobileBrowser()) ? 'touchend' : 'click';
+	var eventName = ('ontouchend' in document.documentElement) ? 'touchend' : 'click';
 
 	/* Multiselect */
 	$('#content')	.on('mousedown', 	function(e) { if (e.which===1) multiselect.show(e) });
@@ -15,8 +15,8 @@ $(document).ready(function() {
 	/* Header */
 	header.dom('#title').on(eventName, function(e) {
 		if (!$(this).hasClass('editable'))	return false;
-		if (visible.photo())				photo.setTitle([photo.getID()]);
-		else								contextMenu.albumTitle([album.getID()], e);
+		if (visible.photo())				contextMenu.photoTitle(album.getID(), photo.getID(), e);
+		else								contextMenu.albumTitle(album.getID(), e);
 	});
 	header.dom('#button_share').on(eventName, function(e) {
 		if (photo.json.public==1||photo.json.public==2)	contextMenu.sharePhoto(photo.getID(), e);
@@ -125,7 +125,7 @@ $(document).ready(function() {
 	});
 
 
-	if (mobileBrowser()) {
+	if ('ontouchend' in document.documentElement) {
 
 		$(document)
 
@@ -154,11 +154,6 @@ $(document).ready(function() {
 		.on('click', '.album', function() { lychee.goto($(this).attr('data-id')) })
 		.on('click', '.photo', function() { lychee.goto(album.getID() + '/' + $(this).attr('data-id')) })
 
-		/* Modal */
-		.on(eventName, '.message .close',			modal.close)
-		.on(eventName, '.message .button:first',	function() { if (modal.fns!==null) modal.fns[0](); if (!visible.signin()) modal.close() })
-		.on(eventName, '.message .button:last',	function() { if (modal.fns!==null) modal.fns[1](); if (!visible.signin()) modal.close() })
-
 		/* Context Menu */
 		.on('contextmenu', '.photo', function(e) { contextMenu.photo(photo.getID(), e) })
 		.on('contextmenu', '.album', function(e) { contextMenu.album(album.getID(), e) })
@@ -167,8 +162,7 @@ $(document).ready(function() {
 		.on(eventName, '#infobox_overlay', view.infobox.hide)
 
 		/* Upload */
-		.on('change', '#upload_files',				function() { modal.close(); upload.start.local(this.files) })
-		.on(eventName, '.upload_message a.close',	upload.close)
+		.on('change', '#upload_files',				function() { basicModal.close(); upload.start.local(this.files) })
 		.on('dragover',								function(e) { e.preventDefault(); }, false)
 		.on('drop', function(e) {
 
